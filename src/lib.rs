@@ -141,6 +141,11 @@ impl Command<'_> {
             }
         }
     }
+
+    fn dest_to_bin(mnemonic: &str) -> u8 {
+        // convert some stuff
+        0
+    }
 }
 
 pub fn parse_args(args: &[String]) -> Result<String, &str> {
