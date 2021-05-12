@@ -49,7 +49,7 @@ pub struct Parser<'a> {
 // ^(?:A?M(?:D=(?:(?:A\+1|D(?:[+\-][1A]|[&|]A)|![AD]|[01])(?:;J(?:EQ|[GL][ET]|MP|NE))?|A?\-[1D](?:;J(?:EQ|[GL][ET]|MP|NE))?|[AD];J(?:EQ|[GL][ET]|MP|NE)|[AD])|=(?:(?:A\+1|D(?:[+\-][1A]|[&|]A)|![AD]|[01])(?:;J(?:EQ|[GL][ET]|MP|NE))?|A?\-[1D](?:;J(?:EQ|[GL][ET]|MP|NE))?|[AD];J(?:EQ|[GL][ET]|MP|NE)|[AD]))|AD=(?:(?:A\+1|D(?:[+\-][1A]|[&|]A)|![AD]|[01])(?:;J(?:EQ|[GL][ET]|MP|NE))?|A?\-[1D](?:;J(?:EQ|[GL][ET]|MP|NE))?|[AD];J(?:EQ|[GL][ET]|MP|NE)|[AD])|[AD]=(?:(?:A\+1|D(?:[+\-][1A]|[&|]A)|![AD]|[01])(?:;J(?:EQ|[GL][ET]|MP|NE))?|A?\-[1D](?:;J(?:EQ|[GL][ET]|MP|NE))?|[AD];J(?:EQ|[GL][ET]|MP|NE)|[AD])|(?:A\+1|D[+\-][1A]|D[&|]A|![AD]|[01])(?:;J(?:EQ|[GL][ET]|MP|NE))?|A?\-[1D](?:;J(?:EQ|[GL][ET]|MP|NE))?|[AD];J(?:EQ|[GL][ET]|MP|NE)|[AD])$
 
 fn get_command_type(command: &str) -> Option<Command> {
-    let a_command_regex = Regex::new("@R?\\d{1,}").unwrap();
+    let a_command_regex = Regex::new("@.{1,}").unwrap();
     let l_command_regex = Regex::new("\\(.*\\)").unwrap();
 
     let is_l_command = l_command_regex.is_match(command);
@@ -112,22 +112,21 @@ impl Command<'_> {
         }
     }
 
-    // fn comp(&self) -> Option<&str> {
-    //     match self {
-    //         Command::ACommand(_val) => None,
-    //         Command::LCommand(_val) => None,
-    //         Command::CCommand(val) => {
-    //             let w: Vec<&str> = val.split(&['=', ';'][..]).collect();
-    //             // println!("{:?}", w);
-    //             let comp = w[0];
-    //             if comp.is_empty() {
-    //                 None
-    //             } else {
-    //                 Some(comp)
-    //             }
-    //         }
-    //     }
-    // }
+    fn comp(&self) -> Option<&str> {
+        match self {
+            Command::ACommand(_val) => None,
+            Command::LCommand(_val) => None,
+            Command::CCommand(val) => {
+                let mut start_bytes = val.find('=').unwrap_or(0);
+                if start_bytes > 0 {
+                    start_bytes += 1;
+                }
+
+                let end_bytes = val.find(';').unwrap_or(val.len());
+                Some(&val[start_bytes..end_bytes])
+            }
+        }
+    }
 
     // fn jump(&self) -> Option<&str> {
     //     match self {
@@ -191,8 +190,8 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
         // }
         // println!("{}", command.command_type());
         // println!(" {:?}", command.symbol());
-        println!(" {:?}", command.dest());
-        // println!(" {:?}", command.comp());
+        // println!(" {:?}", command.dest());
+        println!(" {:?}", command.comp());
         // println!(" {:?}", command.jump());
     }
 
