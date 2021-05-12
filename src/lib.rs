@@ -128,22 +128,20 @@ impl Command<'_> {
         }
     }
 
-    // fn jump(&self) -> Option<&str> {
-    //     match self {
-    //         Command::ACommand(_val) => None,
-    //         Command::LCommand(_val) => None,
-    //         Command::CCommand(val) => {
-    //             let w: Vec<&str> = val.split('=').collect();
-
-    //             let jump = w[0];
-    //             if jump.is_empty() {
-    //                 None
-    //             } else {
-    //                 Some(jump)
-    //             }
-    //         }
-    //     }
-    // }
+    fn jump(&self) -> Option<&str> {
+        match self {
+            Command::ACommand(_val) => None,
+            Command::LCommand(_val) => None,
+            Command::CCommand(val) => {
+                let mut start_bytes = val.find(';').unwrap_or(0);
+                if start_bytes == 0 {
+                    return None;
+                }
+                start_bytes += 1;
+                Some(&val[start_bytes..])
+            }
+        }
+    }
 }
 
 pub fn parse_args(args: &[String]) -> Result<String, &str> {
@@ -190,9 +188,9 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
         // }
         // println!("{}", command.command_type());
         // println!(" {:?}", command.symbol());
-        // println!(" {:?}", command.dest());
+        println!(" {:?}", command.dest());
         println!(" {:?}", command.comp());
-        // println!(" {:?}", command.jump());
+        println!(" {:?}", command.jump());
     }
 
     Ok(())
