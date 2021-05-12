@@ -41,10 +41,6 @@ use std::process;
 
 pub struct Parser<'a> {
     commands: Vec<Command<'a>>,
-    current_command_idx: usize,
-    // lines: Vec<String>,
-    // current_line: u32,
-    // current_command: Command,
 }
 
 // ACommand regex - @R?\d{1,}
@@ -64,7 +60,6 @@ fn get_command_type(command: &str) -> Option<Command> {
     } else if is_a_command {
         Some(Command::ACommand(command))
     } else {
-        // perform c command validation here
         if command.is_empty() {
             None
         } else {
@@ -73,51 +68,28 @@ fn get_command_type(command: &str) -> Option<Command> {
     }
 }
 
-impl Parser<'_> {
-    // Reads the next command from the input & makes it the current command.
-    // pub fn advance(&self) {
-    //     // while let lines[&self.current_line]
-    //     while &self.current_line > 0..&self.lines.len() {
-    //         println!("{}", &self.lines[&self.current_line]) & self.current_line += 1
-    //     }
+// impl Parser<'_> {}
 
-    //     // look for next command
-    //     ()
-    // }
-
-    // fn current_command(&self) {
-    //     &self.commands[&self.current_command_idx];
-    // }
-    // pub fn has_more_commands() -> bool {}
-    // pub fn advance(&self) -> Result<&Vec<u8>, Box<dyn Error>> {
-    //     let command = &self.contents;
-    // }
-
-    // pub fn contents(&self) -> String {
-    //     let contents =
-    //         fs::read_to_string(&self.filename).expect("Something went wrong reading the file.");
-
-    //     contents
-    // }
-}
-
-#[derive(Clone)]
 enum Command<'a> {
     ACommand(&'a str), // address
     CCommand(&'a str), // compute
     LCommand(&'a str), // pseudo
 }
 
-// impl Command {
-//     fn new(line: String) -> Command {
-//         Command { line }
+impl Command<'_> {}
+// impl<T> Command<'_, T> {
+//     fn type_is(&self) -> &str {
+//         &self
+//         // match &self {
+//         //     Command::ACommand(_) => "ACommand",
+//         //     Command::LCommand(_) => "LCommand",
+//         //     Command::CCommand(_) => "CCommand",
+//         // }
 //     }
+// }
 
-//     // fn type {
-// ez
-//     // }
 //     // fn symbol {
-// use rust matching for these methods
+// // use rust matching for these methods
 //     // }
 
 //     // fn dest {
@@ -150,7 +122,6 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
     });
 
     let contents = fs::read_to_string(filename).expect("no such file");
-    let commands: Vec<Command> = Vec::new();
 
     // remove comments and whitespace, may still contain newlines
     let regex = Regex::new("\n{2,}|[^\\S\\r\\n]|//.*").unwrap();
@@ -161,15 +132,14 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
         .filter_map(|line| get_command_type(line))
         .collect::<Vec<Command>>();
 
-    // let parser = Parser::new_from_file(filename);
     let parser = Parser {
         commands,
-        current_command_idx: 0,
+        // current_command_idx: 0,
     };
 
-    // parser.advance();
     for command in parser.commands {
         if let Command::ACommand(val) = command {
+            // println!("{}", command.type());
             println!("a-{:?}", val);
         }
         if let Command::LCommand(val) = command {
