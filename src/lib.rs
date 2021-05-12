@@ -77,23 +77,21 @@ enum Command<'a> {
 }
 
 impl Command<'_> {
-    // complete
-    // fn command_type(&self) -> &str {
-    //     match self {
-    //         Command::ACommand(_val) => "ACommand",
-    //         Command::CCommand(_val) => "CCommand",
-    //         Command::LCommand(_val) => "LCommand",
-    //     }
-    // }
+    fn command_type(&self) -> &str {
+        match self {
+            Command::ACommand(_val) => "ACommand",
+            Command::CCommand(_val) => "CCommand",
+            Command::LCommand(_val) => "LCommand",
+        }
+    }
 
-    // complete
-    // fn symbol(&self) -> Option<&str> {
-    //     match self {
-    //         Command::ACommand(val) => Some(val),
-    //         Command::LCommand(val) => Some(val),
-    //         Command::CCommand(_val) => None,
-    //     }
-    // }
+    fn symbol(&self) -> Option<&str> {
+        match self {
+            Command::ACommand(val) => Some(val),
+            Command::LCommand(val) => Some(val),
+            Command::CCommand(_val) => None,
+        }
+    }
 
     // dest=comp;jump
     fn dest(&self) -> Option<&str> {
