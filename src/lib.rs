@@ -41,7 +41,7 @@ use std::process;
 
 pub struct Parser<'a> {
     commands: Vec<Command<'a>>,
-    current_command_idx: u32,
+    current_command_idx: usize,
     // lines: Vec<String>,
     // current_line: u32,
     // current_command: Command,
@@ -65,7 +65,11 @@ fn get_command_type(command: &str) -> Option<Command> {
         Some(Command::ACommand(command))
     } else {
         // perform c command validation here
-        Some(Command::CCommand(command))
+        if command.is_empty() {
+            None
+        } else {
+            Some(Command::CCommand(command))
+        }
     }
 }
 
@@ -81,7 +85,9 @@ impl Parser<'_> {
     //     ()
     // }
 
-    // fn current_command() ->
+    // fn current_command(&self) {
+    //     &self.commands[&self.current_command_idx];
+    // }
     // pub fn has_more_commands() -> bool {}
     // pub fn advance(&self) -> Result<&Vec<u8>, Box<dyn Error>> {
     //     let command = &self.contents;
@@ -173,7 +179,6 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
             println!("c-{:?}", val);
         }
     }
-    // println!("With text:\n{}", parser.contents);
 
     Ok(())
 }
