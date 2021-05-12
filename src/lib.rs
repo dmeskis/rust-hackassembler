@@ -142,9 +142,10 @@ impl Command<'_> {
         }
     }
 
-    fn dest_to_bin(mnemonic: &str) -> u8 {
+    // dest as string representation of binary
+    fn bdest(mnemonic: &str) -> &str {
         // convert some stuff
-        0
+        mnemonic
     }
 }
 
@@ -181,6 +182,7 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
         println!(" {:?}", command.dest());
         println!(" {:?}", command.comp());
         println!(" {:?}", command.jump());
+        println!(" {:?}", Command::bdest(command.dest().unwrap_or(&"lol")));
     }
 
     Ok(())
