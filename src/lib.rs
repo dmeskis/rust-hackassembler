@@ -76,34 +76,78 @@ enum Command<'a> {
     LCommand(&'a str), // pseudo
 }
 
-impl Command<'_> {}
-// impl<T> Command<'_, T> {
-//     fn type_is(&self) -> &str {
-//         &self
-//         // match &self {
-//         //     Command::ACommand(_) => "ACommand",
-//         //     Command::LCommand(_) => "LCommand",
-//         //     Command::CCommand(_) => "CCommand",
-//         // }
-//     }
-// }
+impl Command<'_> {
+    // complete
+    // fn command_type(&self) -> &str {
+    //     match self {
+    //         Command::ACommand(_val) => "ACommand",
+    //         Command::CCommand(_val) => "CCommand",
+    //         Command::LCommand(_val) => "LCommand",
+    //     }
+    // }
 
-//     // fn symbol {
-// // use rust matching for these methods
-//     // }
+    // complete
+    // fn symbol(&self) -> Option<&str> {
+    //     match self {
+    //         Command::ACommand(val) => Some(val),
+    //         Command::LCommand(val) => Some(val),
+    //         Command::CCommand(_val) => None,
+    //     }
+    // }
 
-//     // fn dest {
+    // dest=comp;jump
+    fn dest(&self) -> Option<&str> {
+        match self {
+            Command::ACommand(_val) => None,
+            Command::LCommand(_val) => None,
+            Command::CCommand(val) => {
+                let idx = val.find('=');
+                match idx {
+                    Some(idx) => {
+                        let comp = &val[0..idx];
+                        Some(comp)
+                    }
+                    None => None,
+                }
+                // }
+            }
+        }
+    }
 
-//     // }
+    // fn comp(&self) -> Option<&str> {
+    //     match self {
+    //         Command::ACommand(_val) => None,
+    //         Command::LCommand(_val) => None,
+    //         Command::CCommand(val) => {
+    //             let w: Vec<&str> = val.split(&['=', ';'][..]).collect();
+    //             // println!("{:?}", w);
+    //             let comp = w[0];
+    //             if comp.is_empty() {
+    //                 None
+    //             } else {
+    //                 Some(comp)
+    //             }
+    //         }
+    //     }
+    // }
 
-//     // fn comp {
+    // fn jump(&self) -> Option<&str> {
+    //     match self {
+    //         Command::ACommand(_val) => None,
+    //         Command::LCommand(_val) => None,
+    //         Command::CCommand(val) => {
+    //             let w: Vec<&str> = val.split('=').collect();
 
-//     // }
-
-//     // fn jump {
-
-//     // }
-// }
+    //             let jump = w[0];
+    //             if jump.is_empty() {
+    //                 None
+    //             } else {
+    //                 Some(jump)
+    //             }
+    //         }
+    //     }
+    // }
+}
 
 pub fn parse_args(args: &[String]) -> Result<String, &str> {
     if args.len() < 2 {
@@ -138,16 +182,20 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
     };
 
     for command in parser.commands {
-        if let Command::ACommand(val) = command {
-            // println!("{}", command.type());
-            println!("a-{:?}", val);
-        }
-        if let Command::LCommand(val) = command {
-            println!("l-{:?}", val);
-        }
-        if let Command::CCommand(val) = command {
-            println!("c-{:?}", val);
-        }
+        // if let Command::ACommand(val) = command {
+        //     println!("a-{:?}", val);
+        // }
+        // if let Command::LCommand(val) = command {
+        //     println!("l-{:?}", val);
+        // }
+        // if let Command::CCommand(val) = command {
+        //     println!("c-{:?}", val);
+        // }
+        // println!("{}", command.command_type());
+        // println!(" {:?}", command.symbol());
+        println!(" {:?}", command.dest());
+        // println!(" {:?}", command.comp());
+        // println!(" {:?}", command.jump());
     }
 
     Ok(())
