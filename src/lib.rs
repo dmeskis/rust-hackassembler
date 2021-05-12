@@ -107,7 +107,6 @@ impl Command<'_> {
                     }
                     None => None,
                 }
-                // }
             }
         }
     }
@@ -171,23 +170,9 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
         .filter_map(|line| get_command_type(line))
         .collect::<Vec<Command>>();
 
-    let parser = Parser {
-        commands,
-        // current_command_idx: 0,
-    };
+    let parser = Parser { commands };
 
     for command in parser.commands {
-        // if let Command::ACommand(val) = command {
-        //     println!("a-{:?}", val);
-        // }
-        // if let Command::LCommand(val) = command {
-        //     println!("l-{:?}", val);
-        // }
-        // if let Command::CCommand(val) = command {
-        //     println!("c-{:?}", val);
-        // }
-        // println!("{}", command.command_type());
-        // println!(" {:?}", command.symbol());
         println!(" {:?}", command.dest());
         println!(" {:?}", command.comp());
         println!(" {:?}", command.jump());
