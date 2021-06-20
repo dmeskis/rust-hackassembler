@@ -1,7 +1,8 @@
-use ::phf::{phf_map, phf_set};
+use ::phf::phf_map;
 use regex::Regex;
 use std::error::Error;
 use std::fs;
+use std::fs::File;
 use std::process;
 
 static COMP_TO_BINARY: phf::Map<&'static str, &'static str> = phf_map! {
@@ -232,7 +233,7 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
         process::exit(1);
     });
 
-    let contents = fs::read_to_string(filename).expect("no such file");
+    let contents = fs::read_to_string(&filename).expect("no such file");
 
     // remove comments and whitespace, may still contain newlines
     let regex = Regex::new("\n{2,}|[^\\S\\r\\n]|//.*").unwrap();
@@ -258,7 +259,12 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
         result.push(bjump);
     }
 
-    println!("{:?}", result.join(""));
+    let filename_prefix = filename.split(".").collect::<Vec<&str>>()[0];
+    let new_filename = format!("{}{}", filename_prefix, &".hack");
+
+    let data = result.join("");
+    File::create(&new_filename);
+    fs::write(new_filename, data).expect("Something went wrong writing your file");
 
     Ok(())
 }
