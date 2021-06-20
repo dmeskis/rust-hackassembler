@@ -124,8 +124,7 @@ fn get_command_type(command: &str) -> Option<Command> {
     }
 }
 
-// impl Parser<'_> {}
-
+#[derive(Clone)]
 enum Command<'a> {
     ACommand(&'a str), // address
     CCommand(&'a str), // compute
@@ -246,24 +245,17 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
 
     let parser = Parser { commands };
 
-    // let result = parser.commands.flat_map(|command|
-    //     [command.dest(), command.comp(), command.jump()]
-    //     ).join("");
-    //
     let mut result = vec![];
-    for command in parser.commands {
-        let dest = Command::bdest(command.dest());
-        let comp = Command::bcomp(command.comp());
-        let jump = Command::bjump(command.jump());
-        result.push(dest);
-        result.push(comp);
-        result.push(jump);
-        // println!(" {:?}", command.dest());
-        // println!(" {:?}", command.comp());
-        // println!(" {:?}", command.jump());
-        // println!(" {:?}", Command::bdest(command.dest()));
-        // println!(" {:?}", Command::bcomp(command.comp()));
-        // println!(" {:?}", Command::bjump(command.jump()));
+    for i in 0..parser.commands.len() {
+        let dest = parser.commands[i].dest();
+        let comp = parser.commands[i].comp();
+        let jump = parser.commands[i].jump();
+        let bdest = Command::bdest(dest);
+        let bcomp = Command::bcomp(comp);
+        let bjump = Command::bjump(jump);
+        result.push(bdest);
+        result.push(bcomp);
+        result.push(bjump);
     }
 
     println!("{:?}", result.join(""));
