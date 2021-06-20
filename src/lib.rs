@@ -5,6 +5,7 @@ use std::fs;
 use std::process;
 
 static COMP_TO_BINARY: phf::Map<&'static str, &'static str> = phf_map! {
+    // when a=0
     "0" => "101010",
     "1" => "111111",
     "-1" => "111010",
@@ -23,7 +24,7 @@ static COMP_TO_BINARY: phf::Map<&'static str, &'static str> = phf_map! {
     "A-D" => "000111",
     "D&A" => "000000",
     "D|A" => "010101",
-    //
+    // when a=1
     "M" => "110000",
     "!M" => "110001",
     "-M" => "110011",
@@ -198,11 +199,21 @@ impl Command<'_> {
     }
 
     // dest as string representation of binary
-    fn bdest(mnemonic: &str) -> &str {
-        // convert some stuff
-        // mnemonic
-        // DEST_TO_BINARY.get(mnemonic).cloned()
-        DEST_TO_BINARY[mnemonic]
+    fn bdest(mnemonic: Option<&str>) -> &str {
+        DEST_TO_BINARY[mnemonic.unwrap_or(&"null")]
+    }
+
+    // jump as string representation of binary
+    fn bjump(mnemonic: Option<&str>) -> &str {
+        JUMP_TO_BINARY[mnemonic.unwrap_or(&"null")]
+    }
+
+    // comp as string representation of binary
+    fn bcomp(mnemonic: Option<&str>) -> &str {
+        if mnemonic == None {
+            return "";
+        }
+        COMP_TO_BINARY[mnemonic.unwrap()]
     }
 }
 
@@ -239,7 +250,9 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
         // println!(" {:?}", command.dest());
         // println!(" {:?}", command.comp());
         // println!(" {:?}", command.jump());
-        println!(" {:?}", Command::bdest(command.dest().unwrap_or(&"null")));
+        println!(" {:?}", Command::bdest(command.dest()));
+        println!(" {:?}", Command::bcomp(command.comp()));
+        println!(" {:?}", Command::bjump(command.jump()));
     }
 
     Ok(())
