@@ -111,8 +111,7 @@ impl Parser<'_> {
                     let num_as_binary = format!("0{:015b}", num);
                     Some(num_as_binary)
                 } else {
-                    // handle symbols
-                    // println!("{:?}", val);
+                    // Handle case where A_COMMAND can be symbolic
                     let num = self.symbol_table[&val[1..]].clone();
                     let num_as_binary = format!("0{:015b}", num);
                     Some(num_as_binary)
@@ -266,7 +265,6 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
     let regex = Regex::new("\n{2,}|[^\\S\\r\\n]|//.*").unwrap();
     let contents = regex.replace_all(&contents, "").into_owned();
 
-    // Get commands
     let commands = contents
         .lines()
         .filter_map(|line| get_command_type(line))
