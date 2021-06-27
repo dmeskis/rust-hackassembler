@@ -6,36 +6,36 @@ use std::fs::File;
 use std::process;
 
 static COMP_TO_BINARY: phf::Map<&'static str, &'static str> = phf_map! {
-    // when a=0
-    "0" => "101010",
-    "1" => "111111",
-    "-1" => "111010",
-    "D" => "001100",
-    "A" => "110000",
-    "!D" => "001101",
-    "!A" => "110001",
-    "-D" => "001111",
-    "-A" => "110011",
-    "D+1" => "011111",
-    "A+1" => "110111",
-    "D-1" => "001110",
-    "A-1" => "110010",
-    "D+A" => "000010",
-    "D-A" => "010011",
-    "A-D" => "000111",
-    "D&A" => "000000",
-    "D|A" => "010101",
-    // when a=1
-    "M" => "110000",
-    "!M" => "110001",
-    "-M" => "110011",
-    "M+1" => "110111",
-    "M-1" => "110010",
-    "D+M" => "000010",
-    "D-M" => "010011",
-    "M-D" => "000111",
-    "D&M" => "000000",
-    "D|M" => "010101",
+    // a=0
+    "0" => "0101010",
+    "1" => "0111111",
+    "-1" => "0111010",
+    "D" => "0001100",
+    "A" => "0110000",
+    "!D" => "0001101",
+    "!A" => "0110001",
+    "-D" => "0001111",
+    "-A" => "0110011",
+    "D+1" => "0011111",
+    "A+1" => "0110111",
+    "D-1" => "0001110",
+    "A-1" => "0110010",
+    "D+A" => "0000010",
+    "D-A" => "0010011",
+    "A-D" => "0000111",
+    "D&A" => "0000000",
+    "D|A" => "0010101",
+    // a=1
+    "M" => "1110000",
+    "!M" => "1110001",
+    "-M" => "1110011",
+    "M+1" => "1110111",
+    "M-1" => "1110010",
+    "D+M" => "1000010",
+    "D-M" => "1010011",
+    "M-D" => "1000111",
+    "D&M" => "1000000",
+    "D|M" => "1010101",
 };
 
 static DEST_TO_BINARY: phf::Map<&'static str, &'static str> = phf_map! {
@@ -125,7 +125,7 @@ fn get_command_type(command: &str) -> Option<Command> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 enum Command<'a> {
     ACommand(&'a str), // address
     CCommand(&'a str), // compute
@@ -198,6 +198,25 @@ impl Command<'_> {
         }
     }
 
+    fn command_as_binary(&self) -> Option<String> {
+        match self {
+            Command::ACommand(val) => {
+                let num = &val[1..].parse::<i32>().unwrap();
+                let num_as_binary = format!("0{:015b}", num);
+                Some(num_as_binary)
+            }
+            Command::LCommand(_val) => None,
+            Command::CCommand(val) => {
+                let bdest = Command::bdest(self.dest());
+                let bcomp = Command::bcomp(self.comp());
+                let bjump = Command::bjump(self.jump());
+                let num_as_binary = format!("111{}{}{}", bcomp, bdest, bjump);
+                println!("Binary: {:?}", num_as_binary);
+                Some(num_as_binary)
+            }
+        }
+    }
+
     // dest as string representation of binary
     fn bdest(mnemonic: Option<&str>) -> &str {
         DEST_TO_BINARY[mnemonic.unwrap_or(&"null")]
@@ -210,9 +229,6 @@ impl Command<'_> {
 
     // comp as string representation of binary
     fn bcomp(mnemonic: Option<&str>) -> &str {
-        if mnemonic == None {
-            return "";
-        }
         COMP_TO_BINARY[mnemonic.unwrap()]
     }
 }
@@ -248,21 +264,15 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
 
     let mut result = vec![];
     for i in 0..parser.commands.len() {
-        let dest = parser.commands[i].dest();
-        let comp = parser.commands[i].comp();
-        let jump = parser.commands[i].jump();
-        let bdest = Command::bdest(dest);
-        let bcomp = Command::bcomp(comp);
-        let bjump = Command::bjump(jump);
-        result.push(bdest);
-        result.push(bcomp);
-        result.push(bjump);
+        result.push(parser.commands[i].command_as_binary().unwrap());
     }
 
     let filename_prefix = filename.split(".").collect::<Vec<&str>>()[0];
     let new_filename = format!("{}{}", filename_prefix, &".hack");
 
-    let data = result.join("");
+    let data = result.join("\n");
+
+    println!("{:?}", data);
     File::create(&new_filename);
     fs::write(new_filename, data).expect("Something went wrong writing your file");
 
