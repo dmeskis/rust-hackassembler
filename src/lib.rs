@@ -1,5 +1,6 @@
 use ::phf::phf_map;
 use regex::Regex;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::fs::File;
@@ -98,6 +99,35 @@ static JUMP_TO_BINARY: phf::Map<&'static str, &'static str> = phf_map! {
 
 pub struct Parser<'a> {
     commands: Vec<Command<'a>>,
+    symbol_table: HashMap<String, usize>,
+}
+
+impl Parser<'_> {
+    fn command_as_binary(&self, command: Command) -> Option<String> {
+        match command {
+            Command::ACommand(val) => {
+                if val.chars().nth(1).unwrap().is_numeric() {
+                    let num = &val[1..].parse::<i32>().unwrap();
+                    let num_as_binary = format!("0{:015b}", num);
+                    Some(num_as_binary)
+                } else {
+                    // handle symbols
+                    // println!("{:?}", val);
+                    let num = self.symbol_table[&val[1..]].clone();
+                    let num_as_binary = format!("0{:015b}", num);
+                    Some(num_as_binary)
+                }
+            }
+            Command::LCommand(_val) => None,
+            Command::CCommand(_val) => {
+                let bdest = Command::bdest(command.dest());
+                let bcomp = Command::bcomp(command.comp());
+                let bjump = Command::bjump(command.jump());
+                let num_as_binary = format!("111{}{}{}", bcomp, bdest, bjump);
+                Some(num_as_binary)
+            }
+        }
+    }
 }
 
 // ACommand regex - @R?\d{1,}
@@ -125,7 +155,7 @@ fn get_command_type(command: &str) -> Option<Command> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum Command<'a> {
     ACommand(&'a str), // address
     CCommand(&'a str), // compute
@@ -198,25 +228,6 @@ impl Command<'_> {
         }
     }
 
-    fn command_as_binary(&self) -> Option<String> {
-        match self {
-            Command::ACommand(val) => {
-                let num = &val[1..].parse::<i32>().unwrap();
-                let num_as_binary = format!("0{:015b}", num);
-                Some(num_as_binary)
-            }
-            Command::LCommand(_val) => None,
-            Command::CCommand(val) => {
-                let bdest = Command::bdest(self.dest());
-                let bcomp = Command::bcomp(self.comp());
-                let bjump = Command::bjump(self.jump());
-                let num_as_binary = format!("111{}{}{}", bcomp, bdest, bjump);
-                println!("Binary: {:?}", num_as_binary);
-                Some(num_as_binary)
-            }
-        }
-    }
-
     // dest as string representation of binary
     fn bdest(mnemonic: Option<&str>) -> &str {
         DEST_TO_BINARY[mnemonic.unwrap_or(&"null")]
@@ -255,16 +266,75 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
     let regex = Regex::new("\n{2,}|[^\\S\\r\\n]|//.*").unwrap();
     let contents = regex.replace_all(&contents, "").into_owned();
 
+    // Get commands
     let commands = contents
         .lines()
         .filter_map(|line| get_command_type(line))
         .collect::<Vec<Command>>();
 
-    let parser = Parser { commands };
+    let mut symbol_table = HashMap::new();
+
+    // Add predefined symbols
+    symbol_table.insert("SP".to_string(), 0);
+    symbol_table.insert("LCL".to_string(), 1);
+    symbol_table.insert("ARG".to_string(), 2);
+    symbol_table.insert("THIS".to_string(), 3);
+    symbol_table.insert("THAT".to_string(), 4);
+    for i in 0..15 {
+        let key = format!("R{}", i);
+        &symbol_table.insert(key, i);
+    }
+    symbol_table.insert("SCREEN".to_string(), 16384);
+    symbol_table.insert("KBD".to_string(), 24576);
+
+    // Build symbol table
+    // First pass - pseudo labels
+    let mut count = 0;
+    for command in commands.iter() {
+        match command {
+            Command::ACommand(val) => count += 1,
+            Command::LCommand(val) => {
+                // handle label symbols
+                let mut chars = val.chars();
+                chars.next();
+                chars.next_back();
+                &symbol_table.insert(chars.as_str().to_string(), count);
+            }
+            Command::CCommand(_val) => count += 1,
+        }
+    }
+
+    // Second pass - variable symbols
+    let mut count = 16;
+    for command in commands.iter() {
+        match command {
+            Command::ACommand(val) => {
+                // handle variable symbols
+                if val.chars().nth(1).unwrap().is_alphabetic() {
+                    let key = val[1..].to_string();
+                    if !symbol_table.contains_key(&key) {
+                        symbol_table.insert(key, count);
+                        count += 1
+                    }
+                }
+            }
+            Command::LCommand(_val) => (),
+            Command::CCommand(_val) => (),
+        }
+    }
+
+    println!("{:?}", symbol_table);
+
+    let parser = Parser {
+        commands,
+        symbol_table,
+    };
 
     let mut result = vec![];
     for i in 0..parser.commands.len() {
-        result.push(parser.commands[i].command_as_binary().unwrap());
+        if let Some(binary) = parser.command_as_binary(parser.commands[i]) {
+            result.push(binary);
+        }
     }
 
     let filename_prefix = filename.split(".").collect::<Vec<&str>>()[0];
