@@ -105,21 +105,20 @@ pub struct Parser<'a> {
 impl Parser<'_> {
     fn command_as_binary(&self, command: Command) -> Option<String> {
         match command {
-            Command::ACommand(val) => {
+            Command::A(val) => {
                 if val.chars().nth(1).unwrap().is_numeric() {
                     let num = &val[1..].parse::<i32>().unwrap();
                     let num_as_binary = format!("0{:015b}", num);
                     Some(num_as_binary)
                 } else {
-                    // handle symbols
-                    // println!("{:?}", val);
-                    let num = self.symbol_table[&val[1..]].clone();
+                    // Handle case where A_COMMAND can be symbolic
+                    let num = self.symbol_table[&val[1..]];
                     let num_as_binary = format!("0{:015b}", num);
                     Some(num_as_binary)
                 }
             }
-            Command::LCommand(_val) => None,
-            Command::CCommand(_val) => {
+            Command::L(_val) => None,
+            Command::C(_val) => {
                 let bdest = Command::bdest(command.dest());
                 let bcomp = Command::bcomp(command.comp());
                 let bjump = Command::bjump(command.jump());
@@ -143,48 +142,30 @@ fn get_command_type(command: &str) -> Option<Command> {
     let is_a_command = a_command_regex.is_match(command);
 
     if is_l_command {
-        Some(Command::LCommand(command))
+        Some(Command::L(command))
     } else if is_a_command {
-        Some(Command::ACommand(command))
+        Some(Command::A(command))
+    } else if !command.is_empty() {
+        Some(Command::C(command))
     } else {
-        if command.is_empty() {
-            None
-        } else {
-            Some(Command::CCommand(command))
-        }
+        None
     }
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Command<'a> {
-    ACommand(&'a str), // address
-    CCommand(&'a str), // compute
-    LCommand(&'a str), // pseudo
+    A(&'a str), // address
+    C(&'a str), // compute
+    L(&'a str), // pseudo
 }
 
+// dest=comp;jump
 impl Command<'_> {
-    fn command_type(&self) -> &str {
-        match self {
-            Command::ACommand(_val) => "ACommand",
-            Command::CCommand(_val) => "CCommand",
-            Command::LCommand(_val) => "LCommand",
-        }
-    }
-
-    fn symbol(&self) -> Option<&str> {
-        match self {
-            Command::ACommand(val) => Some(val),
-            Command::LCommand(val) => Some(val),
-            Command::CCommand(_val) => None,
-        }
-    }
-
-    // dest=comp;jump
     fn dest(&self) -> Option<&str> {
         match self {
-            Command::ACommand(_val) => None,
-            Command::LCommand(_val) => None,
-            Command::CCommand(val) => {
+            Command::A(_val) => None,
+            Command::L(_val) => None,
+            Command::C(val) => {
                 let idx = val.find('=');
                 match idx {
                     Some(idx) => {
@@ -199,9 +180,9 @@ impl Command<'_> {
 
     fn comp(&self) -> Option<&str> {
         match self {
-            Command::ACommand(_val) => None,
-            Command::LCommand(_val) => None,
-            Command::CCommand(val) => {
+            Command::A(_val) => None,
+            Command::L(_val) => None,
+            Command::C(val) => {
                 let mut start_bytes = val.find('=').unwrap_or(0);
                 if start_bytes > 0 {
                     start_bytes += 1;
@@ -215,9 +196,9 @@ impl Command<'_> {
 
     fn jump(&self) -> Option<&str> {
         match self {
-            Command::ACommand(_val) => None,
-            Command::LCommand(_val) => None,
-            Command::CCommand(val) => {
+            Command::A(_val) => None,
+            Command::L(_val) => None,
+            Command::C(val) => {
                 let mut start_bytes = val.find(';').unwrap_or(0);
                 if start_bytes == 0 {
                     return None;
@@ -225,6 +206,14 @@ impl Command<'_> {
                 start_bytes += 1;
                 Some(&val[start_bytes..])
             }
+        }
+    }
+
+    fn contains_variable_symbol(&self) -> bool {
+        match self {
+            Command::A(val) => val.chars().nth(1).unwrap().is_alphabetic(),
+            Command::L(_val) => false,
+            Command::C(_val) => false,
         }
     }
 
@@ -266,7 +255,6 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
     let regex = Regex::new("\n{2,}|[^\\S\\r\\n]|//.*").unwrap();
     let contents = regex.replace_all(&contents, "").into_owned();
 
-    // Get commands
     let commands = contents
         .lines()
         .filter_map(|line| get_command_type(line))
@@ -282,7 +270,7 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
     symbol_table.insert("THAT".to_string(), 4);
     for i in 0..15 {
         let key = format!("R{}", i);
-        &symbol_table.insert(key, i);
+        symbol_table.insert(key, i);
     }
     symbol_table.insert("SCREEN".to_string(), 16384);
     symbol_table.insert("KBD".to_string(), 24576);
@@ -292,38 +280,31 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
     let mut count = 0;
     for command in commands.iter() {
         match command {
-            Command::ACommand(val) => count += 1,
-            Command::LCommand(val) => {
+            Command::A(_val) => count += 1,
+            Command::L(val) => {
                 // handle label symbols
                 let mut chars = val.chars();
                 chars.next();
                 chars.next_back();
-                &symbol_table.insert(chars.as_str().to_string(), count);
+                symbol_table.insert(chars.as_str().to_string(), count);
             }
-            Command::CCommand(_val) => count += 1,
+            Command::C(_val) => count += 1,
         }
     }
 
     // Second pass - variable symbols
     let mut count = 16;
     for command in commands.iter() {
-        match command {
-            Command::ACommand(val) => {
-                // handle variable symbols
-                if val.chars().nth(1).unwrap().is_alphabetic() {
-                    let key = val[1..].to_string();
-                    if !symbol_table.contains_key(&key) {
-                        symbol_table.insert(key, count);
-                        count += 1
-                    }
+        if let Command::A(val) = command {
+            if command.contains_variable_symbol() {
+                let key = val[1..].to_string();
+                if let std::collections::hash_map::Entry::Vacant(e) = symbol_table.entry(key) {
+                    e.insert(count);
+                    count += 1
                 }
             }
-            Command::LCommand(_val) => (),
-            Command::CCommand(_val) => (),
         }
     }
-
-    println!("{:?}", symbol_table);
 
     let parser = Parser {
         commands,
@@ -337,13 +318,12 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let filename_prefix = filename.split(".").collect::<Vec<&str>>()[0];
+    let filename_prefix = filename.split('.').collect::<Vec<&str>>()[0];
     let new_filename = format!("{}{}", filename_prefix, &".hack");
 
     let data = result.join("\n");
 
-    println!("{:?}", data);
-    File::create(&new_filename);
+    File::create(&new_filename).unwrap();
     fs::write(new_filename, data).expect("Something went wrong writing your file");
 
     Ok(())
