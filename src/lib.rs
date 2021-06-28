@@ -209,6 +209,14 @@ impl Command<'_> {
         }
     }
 
+    fn contains_variable_symbol(&self) -> bool {
+        match self {
+            Command::A(val) => val.chars().nth(1).unwrap().is_alphabetic(),
+            Command::L(_val) => false,
+            Command::C(_val) => false,
+        }
+    }
+
     // dest as string representation of binary
     fn bdest(mnemonic: Option<&str>) -> &str {
         DEST_TO_BINARY[mnemonic.unwrap_or(&"null")]
@@ -287,19 +295,14 @@ pub fn run(args: &[String]) -> Result<(), Box<dyn Error>> {
     // Second pass - variable symbols
     let mut count = 16;
     for command in commands.iter() {
-        match command {
-            Command::A(val) => {
-                // handle variable symbols
-                if val.chars().nth(1).unwrap().is_alphabetic() {
-                    let key = val[1..].to_string();
-                    if let std::collections::hash_map::Entry::Vacant(e) = symbol_table.entry(key) {
-                        e.insert(count);
-                        count += 1
-                    }
+        if let Command::A(val) = command {
+            if command.contains_variable_symbol() {
+                let key = val[1..].to_string();
+                if let std::collections::hash_map::Entry::Vacant(e) = symbol_table.entry(key) {
+                    e.insert(count);
+                    count += 1
                 }
             }
-            Command::L(_val) => (),
-            Command::C(_val) => (),
         }
     }
 
